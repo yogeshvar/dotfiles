@@ -1,0 +1,37 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "kitty-icat",
+    "source": "$HOME/.config/fastfetch/charge.jpg",
+    "height": 20,
+    "width": 20,
+    "position": "left",
+    "padding": {
+      "top": 0,
+      "right": 3
+    }
+  },
+  "display": {
+    "separator": " "
+  },
+  "modules": [
+    "break",
+    "break",
+
+    // ───── Core ─────
+    { "type": "os" },
+    { "type": "kernel" },
+    { "type": "host" },
+    "break",
+
+    // ───── Hardware ─────
+    { "type": "cpu" },
+    { "type": "memory" },
+    "break",
+
+    // ───── Status ─────
+    { "type": "uptime" },
+    { "type": "battery", "format": "{4}"},
+    "break"
+  ]
+}

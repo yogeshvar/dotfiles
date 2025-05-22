@@ -1,0 +1,18 @@
+cache/
+data/
+fitsys/
+sit/
+bookmarks/
+greasemonkey/
+quickmarks
+autoconfig.yml
+shaders/
+download/
+*-theme.conf
+watch_later/
+simple-bar-server/
+*.jpg
+hosts.yml
+dark-theme.auto.conf
+Github Dark.conf
+kitty-themes/
