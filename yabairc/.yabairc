@@ -44,6 +44,20 @@ yabai -m config \
 
 yabai -m config layout bsp
 
+# ensure the first 5 spaces exist and carry their labels (idempotent —
+# only creates what's missing, safe to run on every yabai restart)
+existing_spaces=$(yabai -m query --spaces | jq 'length')
+if [ "$existing_spaces" -lt 5 ]; then
+  for _ in $(seq $((5 - existing_spaces))); do
+    yabai -m space --create
+  done
+fi
+yabai -m space 1 --label "一"
+yabai -m space 2 --label "二"
+yabai -m space 3 --label "三"
+yabai -m space 4 --label "四"
+yabai -m space 5 --label "五"
+
 yabai -m rule --add app="^mpv$" opacity=0.8 manage=off
 yabai -m rule --add app="Finder" manage=off sticky=off
 

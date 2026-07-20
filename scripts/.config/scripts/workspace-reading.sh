@@ -1,3 +1,3 @@
 #!/bin/bash
-~/.config/scripts/ensure-space.sh 1 --focus
-pgrep -x "Safari" >/dev/null || open -a "Safari"
+~/.config/scripts/new-space.sh
+open -n -a "Safari"

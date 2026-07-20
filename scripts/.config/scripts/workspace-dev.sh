@@ -1,4 +1,4 @@
 #!/bin/bash
-~/.config/scripts/ensure-space.sh 5 --focus
+~/.config/scripts/new-space.sh
 kitty -e tmux new-session -A -s dev &
-pgrep -x "Cursor" >/dev/null || open -a "Cursor"
+open -n -a "Cursor"

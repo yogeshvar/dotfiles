@@ -1,3 +1,3 @@
 #!/bin/bash
-~/.config/scripts/ensure-space.sh 3 --focus
+~/.config/scripts/new-space.sh
 kitty -e ~/.config/scripts/yt-feed-picker.sh
