@@ -1,0 +1,4 @@
+# One Twitch username per line (the part after twitch.tv/ in the URL).
+# Lines starting with # are ignored. Example:
+# shroud
+# tenz
