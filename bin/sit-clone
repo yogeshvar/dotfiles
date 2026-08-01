@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+#
+# sit-clone — clone (or update) all Bitbucket Cloud repos into ~/Work/SIT.
+#
+# Auth: reads these from the environment (put them in ~/.zshrc.local):
+#   BITBUCKET_USER       your Atlassian account *email* (username for API tokens)
+#   BITBUCKET_API_TOKEN  an Atlassian API token (id.atlassian.com → Security →
+#                        API tokens), read scope. Used ONLY for the API listing.
+#                        (BITBUCKET_APP_PASSWORD still works as a fallback name.)
+#   BITBUCKET_WORKSPACE  the workspace slug (from bitbucket.org/<workspace>/...)
+#
+# Cloning uses SSH (git@bitbucket.org) — add your key under Bitbucket → Security →
+# SSH keys first, and accept the host key once:  ssh -T git@bitbucket.org
+# Set CLONE_PROTOCOL=https to clone over HTTPS with the token instead.
+#
+# Usage:
+#   sit-clone                 # clone/update every repo in the workspace
+#   sit-clone -p SIT          # only repos in Bitbucket project with key "SIT"
+#   sit-clone repo-a repo-b   # only these specific repo slugs
+
+set -euo pipefail
+
+SIT_DIR="${SIT_DIR:-$HOME/Work/SIT}"
+CLONE_PROTOCOL="${CLONE_PROTOCOL:-ssh}"
+API="https://api.bitbucket.org/2.0"
+
+# --- preflight -------------------------------------------------------------
+: "${BITBUCKET_USER:?set BITBUCKET_USER (your Atlassian email) in ~/.zshrc.local}"
+: "${BITBUCKET_WORKSPACE:?set BITBUCKET_WORKSPACE in ~/.zshrc.local}"
+# Accept either variable name for the secret.
+token="${BITBUCKET_API_TOKEN:-${BITBUCKET_APP_PASSWORD:-}}"
+[[ -n "$token" ]] || { echo "sit-clone: set BITBUCKET_API_TOKEN in ~/.zshrc.local" >&2; exit 1; }
+command -v jq >/dev/null || { echo "sit-clone: jq is required (brew install jq)" >&2; exit 1; }
+
+mkdir -p "$SIT_DIR"
+auth="$BITBUCKET_USER:$token"
+
+# --- args ------------------------------------------------------------------
+project=""
+while getopts ":p:" opt; do
+  case "$opt" in
+    p) project="$OPTARG" ;;
+    :) echo "sit-clone: -$OPTARG requires a project key" >&2; exit 2 ;;
+    \?) echo "sit-clone: unknown option -$OPTARG" >&2; exit 2 ;;
+  esac
+done
+shift $((OPTIND - 1))
+specific_repos=("$@")
+
+# --- gather repo slugs -----------------------------------------------------
+slugs=()
+if [[ ${#specific_repos[@]} -gt 0 ]]; then
+  echo "→ cloning only: ${specific_repos[*]}"
+  slugs=("${specific_repos[@]}")
+else
+  filter=""
+  if [[ -n "$project" ]]; then
+    filter="&q=$(printf 'project.key="%s"' "$project" | jq -sRr @uri)"
+    echo "→ filtering to project: $project"
+  fi
+  echo "→ querying repositories in workspace '$BITBUCKET_WORKSPACE'…"
+  url="$API/repositories/$BITBUCKET_WORKSPACE?pagelen=100&fields=next,values.slug$filter"
+  while [[ -n "$url" && "$url" != "null" ]]; do
+    resp="$(curl -sf -u "$auth" "$url")" || {
+      echo "sit-clone: API request failed — check credentials / workspace." >&2; exit 1; }
+    while IFS= read -r s; do [[ -n "$s" ]] && slugs+=("$s"); done \
+      < <(jq -r '.values[].slug' <<<"$resp")
+    url="$(jq -r '.next // empty' <<<"$resp")"
+  done
+fi
+
+if [[ ${#slugs[@]} -eq 0 ]]; then
+  echo "sit-clone: no repositories matched." >&2; exit 1
+fi
+echo "→ ${#slugs[@]} repo(s) to process."
+echo ""
+
+# --- clone / update --------------------------------------------------------
+ok=0
+failed=()
+for slug in "${slugs[@]}"; do
+  dest="$SIT_DIR/$slug"
+  if [[ "$CLONE_PROTOCOL" == "https" ]]; then
+    clean_url="https://bitbucket.org/$BITBUCKET_WORKSPACE/$slug.git"
+    clone_url="https://$BITBUCKET_USER:$token@bitbucket.org/$BITBUCKET_WORKSPACE/$slug.git"
+  else
+    clean_url="git@bitbucket.org:$BITBUCKET_WORKSPACE/$slug.git"
+    clone_url="$clean_url"
+  fi
+  if [[ -d "$dest/.git" ]]; then
+    echo "⟳ updating $slug"
+    if git -C "$dest" pull --ff-only --quiet; then ok=$((ok + 1)); else failed+=("$slug (pull)"); fi
+  else
+    echo "⭳ cloning  $slug"
+    if git clone --quiet "$clone_url" "$dest"; then
+      # For HTTPS, strip the embedded token so it isn't stored in .git/config.
+      [[ "$CLONE_PROTOCOL" == "https" ]] && git -C "$dest" remote set-url origin "$clean_url"
+      ok=$((ok + 1))
+    else
+      failed+=("$slug (clone)")
+    fi
+  fi
+done
+
+echo ""
+echo "✓ $ok/${#slugs[@]} repos ready in $SIT_DIR"
+if [[ ${#failed[@]} -gt 0 ]]; then
+  printf '✗ failed: %s\n' "${failed[@]}" >&2
+  exit 1
+fi

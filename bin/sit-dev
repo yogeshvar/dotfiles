@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#
+# sit-dev <repo> — open (or reattach) a tmux dev session for a repo in ~/Work/SIT.
+#
+# Layout:
+#   ┌─────────────────┬──────────────────┐
+#   │  claude code    │                  │
+#   ├────────┬────────┤   nvim (lazyvim) │
+#   │  web   │  api   │                  │
+#   └────────┴────────┴──────────────────┘
+#
+# web/api panes open in apps/web and apps/api with `pnpm dev` pre-typed (not run,
+# so you can set up .env first). Press Enter in each when ready.
+
+set -euo pipefail
+
+repo="${1:?usage: sit-dev <repo-slug>}"
+root="${SIT_DIR:-$HOME/Work/SIT}/$repo"
+[[ -d "$root" ]] || { echo "sit-dev: no such repo: $root" >&2; exit 1; }
+command -v tmux >/dev/null || { echo "sit-dev: tmux not installed (brew install tmux)" >&2; exit 1; }
+
+session="${repo//[.:]/-}"     # tmux session names can't contain . or :
+
+_enter() {  # attach, or switch if already inside tmux
+  if [[ -n "${TMUX:-}" ]]; then exec tmux switch-client -t "$session"
+  else exec tmux attach -t "$session"; fi
+}
+
+# Already running? Just go to it.
+tmux has-session -t "$session" 2>/dev/null && _enter
+
+web_dir="$root/apps/web"; [[ -d "$web_dir" ]] || web_dir="$root"
+api_dir="$root/apps/api"; [[ -d "$api_dir" ]] || api_dir="$root"
+
+# Build the layout, capturing each pane id.
+claude_pane=$(tmux new-session -d -s "$session" -c "$root" -P -F '#{pane_id}')
+nvim_pane=$(tmux split-window -h        -t "$claude_pane" -c "$root"    -P -F '#{pane_id}')
+web_pane=$(tmux split-window  -v -l 42% -t "$claude_pane" -c "$web_dir" -P -F '#{pane_id}')
+api_pane=$(tmux split-window  -h        -t "$web_pane"    -c "$api_dir" -P -F '#{pane_id}')
+
+# Launch tools. web/api are pre-typed without Enter (needs .env first).
+tmux send-keys -t "$nvim_pane"   'nvim .' C-m
+tmux send-keys -t "$claude_pane" 'claude' C-m
+tmux send-keys -t "$web_pane"    'pnpm dev'
+tmux send-keys -t "$api_pane"    'pnpm dev'
+
+tmux select-pane -t "$claude_pane"
+_enter
