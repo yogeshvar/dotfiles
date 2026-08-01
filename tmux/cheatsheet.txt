@@ -1,0 +1,52 @@
+
+  TMUX CHEAT SHEET                                    (press  q  to close)
+  ======================================================================
+
+  PREFIX = Ctrl-b   →  hold Ctrl, tap b, let go, THEN press the key below.
+  Almost everything also works with the MOUSE: click a pane to focus it,
+  drag a border to resize, scroll to look back, click a name to switch tab.
+
+  ----------------------------------------------------------------------
+  PANES   (the split boxes inside one screen)
+  ----------------------------------------------------------------------
+    prefix |        split left / right
+    prefix -        split top / bottom
+    Alt + arrows    move between panes           (NO prefix needed)
+    prefix h j k l  move between panes  (left/down/up/right)
+    prefix H J K L  resize the current pane
+    prefix z        zoom the pane fullscreen (press again to undo)
+    prefix x        close the current pane       (asks y / n)
+    drag a border   resize with the mouse
+    click a pane    focus it
+
+  ----------------------------------------------------------------------
+  WINDOWS   (like tabs — shown along the bottom bar)
+  ----------------------------------------------------------------------
+    prefix c        new window
+    Shift + arrows  previous / next window       (NO prefix needed)
+    prefix 1 .. 9   jump straight to that window number
+    prefix ,        rename the window
+    click a name    switch to it
+
+  ----------------------------------------------------------------------
+  SESSIONS   (a whole saved workspace of windows)
+  ----------------------------------------------------------------------
+    prefix d        detach — leaves tmux running in the background
+    tmux attach     re-enter it later   (or just run:  sit-medditour)
+    prefix s        list / switch between sessions
+
+  ----------------------------------------------------------------------
+  SCROLL & COPY
+  ----------------------------------------------------------------------
+    mouse wheel     scroll back through output
+    prefix [        enter scroll mode (arrows / PageUp to move, q to quit)
+                    in scroll mode:  Space = start select,  Enter = copy
+
+  ----------------------------------------------------------------------
+  HELP
+  ----------------------------------------------------------------------
+    prefix ?        show THIS cheat sheet
+    prefix r        reload the tmux config
+
+  ======================================================================
+  Remember: to close this sheet, press  q
