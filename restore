@@ -1,0 +1,499 @@
+#!/usr/bin/env python3
+"""restore: pick-and-install TUI that rebuilds this Mac from the dotfiles repo.
+
+Standard library only, so it runs with the Python 3 that ships with Xcode CLT.
+
+  ./restore             interactive checklist
+  ./restore --dry-run   full UI, commands are only printed
+  ./restore --list      print the catalog and what is already installed
+  ./restore -y          no UI, install every default item
+"""
+import argparse
+import concurrent.futures
+import curses
+import json
+import os
+import queue
+import shlex
+import subprocess
+import sys
+import threading
+import time
+
+REPO = os.path.dirname(os.path.realpath(__file__))
+HOME = os.path.expanduser("~")
+CATALOG = os.path.join(REPO, "restore.catalog.json")
+LOG = os.path.join(HOME, "restore.log")
+EXTRA_PATH = ":".join([
+    "/opt/homebrew/bin", "/opt/homebrew/sbin", os.path.join(HOME, ".cargo/bin"),
+    os.path.join(HOME, ".local/bin"), "/Applications/Cursor.app/Contents/Resources/app/bin",
+])
+
+OK, FAIL, SKIP, BLOCKED, PENDING, RUNNING = "ok", "failed", "skipped", "blocked", "pending", "running"
+
+
+def env():
+    e = dict(os.environ)
+    e["PATH"] = EXTRA_PATH + ":" + e.get("PATH", "")
+    return e
+
+
+def sh(cmd, timeout=60):
+    return subprocess.run(["/bin/bash", "-c", cmd], cwd=REPO, env=env(), capture_output=True, text=True, timeout=timeout)
+
+
+# ----------------------------------------------------------------- catalog
+
+def load_catalog(path=CATALOG):
+    with open(path) as f:
+        data = json.load(f)
+    return data["items"], data.get("manual", [])
+
+
+def order(items):
+    """Stable topological order on `requires` (catalog order breaks ties)."""
+    by_id = {i["id"]: i for i in items}
+    done, out = set(), []
+
+    def visit(i, stack=()):
+        if i["id"] in done:
+            return
+        if i["id"] in stack:
+            raise ValueError("cycle at " + i["id"])
+        for r in i.get("requires", []):
+            if r not in by_id:
+                raise ValueError("%s requires unknown %s" % (i["id"], r))
+            visit(by_id[r], stack + (i["id"],))
+        done.add(i["id"])
+        out.append(i)
+
+    for i in items:
+        visit(i)
+    return out
+
+
+def command_for(item):
+    k = item["kind"]
+    if k == "brew":
+        return "brew install " + shlex.quote(item["name"])
+    if k == "cask":
+        return "brew install --cask " + shlex.quote(item["name"])
+    if k == "tap":
+        return "brew tap " + item["name"] + ((" " + item["url"]) if item.get("url") else "")
+    if k == "stow":
+        return "stow -R --target=$HOME " + shlex.quote(item["name"])
+    return item["cmd"]
+
+
+# ----------------------------------------------------------------- stow
+
+def stow_files(pkg):
+    base = os.path.join(REPO, pkg)
+    for root, _dirs, files in os.walk(base):
+        for f in files:
+            full = os.path.join(root, f)
+            yield os.path.relpath(full, base), full
+
+
+def stow_installed(pkg):
+    files = list(stow_files(pkg))
+    return bool(files) and all(
+        os.path.realpath(os.path.join(HOME, rel)) == os.path.realpath(src) for rel, src in files)
+
+
+def stow_conflicts(pkg):
+    out = []
+    for rel, src in stow_files(pkg):
+        tgt = os.path.join(HOME, rel)
+        if (os.path.lexists(tgt)) and os.path.realpath(tgt) != os.path.realpath(src):
+            out.append(rel)
+    return out
+
+
+# ----------------------------------------------------------------- status
+
+def detect(items):
+    """Return {id: True/False} for already-installed."""
+    brew_f = brew_c = brew_t = set()
+    r = sh("brew list --formula 2>/dev/null; echo ---; brew list --cask 2>/dev/null; echo ---; brew tap 2>/dev/null")
+    if r.returncode == 0 or r.stdout:
+        parts = r.stdout.split("---\n")
+        if len(parts) == 3:
+            brew_f, brew_c, brew_t = (set(p.split()) for p in parts)
+
+    def one(i):
+        k = i["kind"]
+        if k == "brew":
+            return i["name"].split("/")[-1] in brew_f
+        if k == "cask":
+            return i["name"] in brew_c
+        if k == "tap":
+            return i["name"] in brew_t
+        if k == "stow":
+            return stow_installed(i["name"])
+        if i.get("check"):
+            try:
+                return sh(i["check"], timeout=30).returncode == 0
+            except subprocess.TimeoutExpired:
+                return False
+        return False
+
+    with concurrent.futures.ThreadPoolExecutor(8) as ex:
+        return dict(zip([i["id"] for i in items], ex.map(one, items)))
+
+
+# ----------------------------------------------------------------- running
+
+def run_item(item, dry, emit, skip_flag):
+    """Run one item. emit(line) receives output lines. Returns OK/FAIL/SKIP."""
+    cmd = command_for(item)
+    emit("$ " + cmd)
+    if dry:
+        time.sleep(0.15)
+        if item["kind"] == "stow":
+            emit("(dry-run) would back up: " + (", ".join(stow_conflicts(item["name"])) or "nothing"))
+        return OK
+    if item["kind"] == "stow":
+        conflicts = stow_conflicts(item["name"])
+        if conflicts:
+            bdir = os.path.join(HOME, ".dotfiles-backup", time.strftime("%Y%m%d-%H%M%S"))
+            for rel in conflicts:
+                dst = os.path.join(bdir, rel)
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                os.rename(os.path.join(HOME, rel), dst)
+                emit("backed up ~/%s -> %s" % (rel, dst))
+    p = subprocess.Popen(["/bin/bash", "-c", cmd], cwd=REPO, env=env(), stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, text=True, bufsize=1)
+    q = queue.Queue()
+
+    def pump():
+        for line in p.stdout:
+            q.put(line.rstrip("\n"))
+        q.put(None)
+
+    threading.Thread(target=pump, daemon=True).start()
+    while True:
+        try:
+            line = q.get(timeout=0.1)
+        except queue.Empty:
+            line = ""
+            if skip_flag.is_set():
+                p.kill()
+                skip_flag.clear()
+                return SKIP
+            continue
+        if line is None:
+            break
+        emit(line)
+    return OK if p.wait() == 0 else FAIL
+
+
+def run_interactive(item, dry):
+    """Hand the real terminal to the command (sudo prompts etc.)."""
+    cmd = command_for(item)
+    print("\n$ " + cmd)
+    if dry:
+        return OK
+    return OK if subprocess.run(["/bin/bash", "-c", cmd], cwd=REPO, env=env()).returncode == 0 else FAIL
+
+
+# ----------------------------------------------------------------- TUI
+
+class UI:
+    def __init__(self, scr, items, manual, installed, dry):
+        self.scr, self.items, self.manual, self.installed, self.dry = scr, items, manual, installed, dry
+        self.sel = {i["id"]: (not installed[i["id"]]) and i.get("default", True) for i in items}
+        self.status = {i["id"]: PENDING for i in items}
+        curses.curs_set(0)
+        curses.use_default_colors()
+        for n, c in enumerate([curses.COLOR_GREEN, curses.COLOR_RED, curses.COLOR_YELLOW,
+                               curses.COLOR_CYAN, curses.COLOR_MAGENTA], 1):
+            curses.init_pair(n, c, -1)
+        self.G, self.R, self.Y, self.C, self.M = (curses.color_pair(n) for n in range(1, 6))
+
+    def put(self, y, x, s, attr=0):
+        h, w = self.scr.getmaxyx()
+        if 0 <= y < h and x < w - 1:
+            try:
+                self.scr.addnstr(y, x, s, w - x - 1, attr)
+            except curses.error:
+                pass
+
+    # ---- screen 1
+    def rows(self, flt):
+        rows, last = [], None
+        for idx, i in enumerate(self.items):
+            if flt and flt.lower() not in (i["label"] + i["group"] + i.get("desc", "")).lower():
+                continue
+            if i["group"] != last:
+                rows.append(("h", i["group"]))
+                last = i["group"]
+            rows.append(("i", idx))
+        return rows
+
+    def checklist(self):
+        cur, top, flt = 0, 0, ""
+        while True:
+            rows = self.rows(flt)
+            item_rows = [n for n, r in enumerate(rows) if r[0] == "i"]
+            if not item_rows:
+                flt = ""
+                continue
+            cur = max(0, min(cur, len(item_rows) - 1))
+            h, w = self.scr.getmaxyx()
+            body = h - 6
+            pos = item_rows[cur]
+            top = min(top, pos)
+            if pos >= top + body:
+                top = pos - body + 1
+            self.scr.erase()
+            nsel = sum(1 for v in self.sel.values() if v)
+            self.put(0, 1, "restore", curses.A_BOLD | self.C)
+            self.put(0, 10, "pick what to install   %d selected%s%s" % (
+                nsel, "   [DRY RUN]" if self.dry else "", ("   filter: " + flt) if flt else ""), 0)
+            for n in range(body):
+                r = top + n
+                if r >= len(rows):
+                    break
+                kind, v = rows[r]
+                if kind == "h":
+                    self.put(2 + n, 1, v.upper(), curses.A_BOLD | self.M)
+                    continue
+                i = self.items[v]
+                on = self.sel[i["id"]]
+                done = self.installed[i["id"]]
+                attr = curses.A_REVERSE if r == pos else 0
+                mark = "[x]" if on else "[ ]"
+                self.put(2 + n, 3, "%s %-34s" % (mark, i["label"][:34]), attr)
+                if done:
+                    self.put(2 + n, 43, "installed", self.G | (attr))
+                else:
+                    self.put(2 + n, 43, i.get("desc", "")[:max(0, w - 45)], attr)
+            cur_item = self.items[rows[pos][1]]
+            self.put(h - 3, 1, cur_item.get("desc", ""), curses.A_DIM)
+            self.put(h - 2, 1, "$ " + command_for(cur_item), curses.A_DIM)
+            self.put(h - 1, 1, "space toggle  a/n all/none (group)  / filter  enter continue  q quit", self.Y)
+            self.scr.refresh()
+            k = self.scr.getch()
+            if k in (curses.KEY_UP, ord("k")):
+                cur -= 1
+            elif k in (curses.KEY_DOWN, ord("j")):
+                cur += 1
+            elif k == curses.KEY_NPAGE:
+                cur += body
+            elif k == curses.KEY_PPAGE:
+                cur -= body
+            elif k == ord(" "):
+                self.sel[cur_item["id"]] = not self.sel[cur_item["id"]]
+                cur += 1
+            elif k in (ord("a"), ord("n")):
+                for i in self.items:
+                    if i["group"] == cur_item["group"] and (not flt or flt.lower() in i["label"].lower()):
+                        self.sel[i["id"]] = (k == ord("a")) and not self.installed[i["id"]]
+            elif k == ord("/"):
+                flt = self.prompt("filter: ")
+                cur = top = 0
+            elif k in (10, 13, curses.KEY_ENTER):
+                return nsel > 0
+            elif k in (ord("q"), 27):
+                return None
+
+    def prompt(self, label):
+        h, _ = self.scr.getmaxyx()
+        curses.curs_set(1)
+        curses.echo()
+        self.put(h - 1, 1, " " * 70)
+        self.put(h - 1, 1, label, self.Y)
+        self.scr.refresh()
+        s = self.scr.getstr(h - 1, 1 + len(label), 40).decode()
+        curses.noecho()
+        curses.curs_set(0)
+        return s.strip()
+
+    # ---- screen 2
+    def confirm(self, chosen):
+        self.scr.erase()
+        self.put(0, 1, "Ready to install %d item(s)" % len(chosen), curses.A_BOLD | self.C)
+        h, _ = self.scr.getmaxyx()
+        for n, i in enumerate(chosen[:h - 6]):
+            self.put(2 + n, 3, "%-28s %s" % (i["label"][:28], i["group"]))
+        if len(chosen) > h - 6:
+            self.put(h - 4, 3, "... and %d more" % (len(chosen) - h + 6))
+        inter = [i["label"] for i in chosen if i.get("interactive")]
+        if inter:
+            self.put(h - 3, 1, "Will pause for your password: " + ", ".join(inter), self.Y)
+        self.put(h - 1, 1, "enter start   b back   q quit", self.Y)
+        self.scr.refresh()
+        while True:
+            k = self.scr.getch()
+            if k in (10, 13, curses.KEY_ENTER):
+                return "go"
+            if k == ord("b"):
+                return "back"
+            if k in (ord("q"), 27):
+                return "quit"
+
+    # ---- screen 3
+    def run(self, chosen, logf):
+        skip = threading.Event()
+        chosen_ids = {i["id"] for i in chosen}
+        tail = []
+        self.scr.timeout(100)
+        glyph = {OK: ("ok", self.G), FAIL: ("FAILED", self.R), SKIP: ("skipped", self.Y),
+                 BLOCKED: ("blocked", self.Y), PENDING: ("", 0), RUNNING: ("...", self.C)}
+
+        def draw(n):
+            h, _w = self.scr.getmaxyx()
+            self.scr.erase()
+            self.put(0, 1, "Installing %d/%d%s" % (n, len(chosen), "   [DRY RUN]" if self.dry else ""),
+                     curses.A_BOLD | self.C)
+            lh = max(3, h - 14)
+            idx = max(0, min(n - 1, len(chosen) - lh))
+            for r, i in enumerate(chosen[idx:idx + lh]):
+                txt, col = glyph[self.status[i["id"]]]
+                self.put(2 + r, 3, "%-34s" % i["label"][:34])
+                self.put(2 + r, 38, txt, col)
+            base = 3 + lh
+            for r, line in enumerate(tail[-(h - base - 2):]):
+                self.put(base + r, 1, line, curses.A_DIM)
+            self.put(h - 1, 1, "s skip current", self.Y)
+            self.scr.refresh()
+
+        aborted = False
+        for n, item in enumerate(chosen, 1):
+            if aborted:
+                break
+            bad = [r for r in item.get("requires", [])
+                   if self.status.get(r) in (FAIL, SKIP, BLOCKED) or (not self.installed.get(r) and r not in chosen_ids)]
+            if bad:
+                self.status[item["id"]] = BLOCKED
+                logf.write("BLOCKED %s (needs %s)\n" % (item["id"], ", ".join(bad)))
+                continue
+            self.status[item["id"]] = RUNNING
+
+            def emit(line, item=item, n=n):
+                if line:
+                    tail.append(line)
+                    logf.write(line + "\n")
+                draw(n)
+                k = self.scr.getch()
+                if k == ord("s"):
+                    skip.set()
+
+            if item.get("interactive") and not self.dry:
+                curses.def_prog_mode()
+                curses.endwin()
+                res = run_interactive(item, self.dry)
+                curses.reset_prog_mode()
+                self.scr.refresh()
+            else:
+                emit("")
+                res = run_item(item, self.dry, emit, skip)
+            self.status[item["id"]] = res
+            if res == OK:
+                self.installed[item["id"]] = True
+            logf.write("%s %s\n" % (res.upper(), item["id"]))
+            logf.flush()
+            draw(n)
+        self.scr.timeout(-1)
+        return aborted
+
+    # ---- screen 4
+    def finish(self, chosen):
+        ok = sum(1 for i in chosen if self.status[i["id"]] == OK)
+        bad = [i for i in chosen if self.status[i["id"]] in (FAIL, BLOCKED, SKIP)]
+        done = [False] * len(self.manual)
+        cur = 0
+        while True:
+            h, _ = self.scr.getmaxyx()
+            self.scr.erase()
+            self.put(0, 1, "Done: %d ok, %d need attention" % (ok, len(bad)), curses.A_BOLD | (self.R if bad else self.G))
+            for n, i in enumerate(bad[:4]):
+                self.put(2 + n, 3, "%s: %s" % (self.status[i["id"]], i["label"]), self.R)
+            y = 7
+            self.put(y - 1, 1, "MANUAL STEPS (space to tick)", curses.A_BOLD | self.M)
+            for n, m in enumerate(self.manual):
+                self.put(y + n, 3, ("[x] " if done[n] else "[ ] ") + m, curses.A_REVERSE if n == cur else 0)
+            self.put(h - 2, 1, "log: " + LOG, curses.A_DIM)
+            self.put(h - 1, 1, "space tick   q quit", self.Y)
+            self.scr.refresh()
+            k = self.scr.getch()
+            if k in (curses.KEY_UP, ord("k")):
+                cur = max(0, cur - 1)
+            elif k in (curses.KEY_DOWN, ord("j")):
+                cur = min(len(self.manual) - 1, cur + 1)
+            elif k == ord(" "):
+                done[cur] = not done[cur]
+            elif k in (ord("q"), 27):
+                return
+
+
+def tui(scr, items, manual, installed, dry):
+    ui = UI(scr, items, manual, installed, dry)
+    while True:
+        r = ui.checklist()
+        if r is None:
+            return
+        if not r:
+            continue
+        chosen = [i for i in items if ui.sel[i["id"]]]
+        c = ui.confirm(chosen)
+        if c == "back":
+            continue
+        if c == "quit":
+            return
+        with open(LOG, "a") as logf:
+            logf.write("=== %s ===\n" % time.ctime())
+            ui.run(chosen, logf)
+        ui.finish(chosen)
+        return
+
+
+# ----------------------------------------------------------------- plain modes
+
+def plain(items, installed, yes, dry):
+    chosen = [i for i in items if yes and not installed[i["id"]] and i.get("default", True)]
+    status = {}
+    for item in chosen:
+        bad = [r for r in item.get("requires", []) if status.get(r) in (FAIL, SKIP, BLOCKED)]
+        if bad:
+            status[item["id"]] = BLOCKED
+            print("blocked  %s (needs %s)" % (item["label"], ", ".join(bad)))
+            continue
+        print("==> " + item["label"])
+        if item.get("interactive"):
+            res = run_interactive(item, dry)
+        else:
+            res = run_item(item, dry, print, threading.Event())
+        status[item["id"]] = res
+        print("    " + res)
+    return 0 if all(v == OK for v in status.values()) else 1
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--list", action="store_true")
+    ap.add_argument("-y", "--yes", action="store_true")
+    args = ap.parse_args(argv)
+    if sys.platform != "darwin" and not args.list:
+        print("restore is for macOS")
+        return 2
+    items, manual = load_catalog()
+    items = order(items)
+    installed = detect(items)
+    if args.list:
+        for i in items:
+            print("%-9s %-18s %s" % ("installed" if installed[i["id"]] else "-", i["group"], i["label"]))
+        return 0
+    if args.yes:
+        return plain(items, installed, True, args.dry_run)
+    if not sys.stdout.isatty():
+        print("No terminal; use --list or -y")
+        return 2
+    curses.wrapper(tui, items, manual, installed, args.dry_run)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
