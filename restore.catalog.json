@@ -1,0 +1,981 @@
+{
+ "items": [
+  {
+   "id": "homebrew",
+   "group": "Homebrew",
+   "label": "Homebrew",
+   "kind": "shell",
+   "desc": "macOS package manager. Required for most items below. Will ask for your password.",
+   "cmd": "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"",
+   "check": "test -x /opt/homebrew/bin/brew",
+   "interactive": true,
+   "requires": [],
+   "default": true
+  },
+  {
+   "id": "tap:asmvik/formulae",
+   "group": "Taps",
+   "label": "asmvik/formulae",
+   "kind": "tap",
+   "name": "asmvik/formulae",
+   "url": "https://github.com/asmvik/homebrew-formulae.git",
+   "desc": "Third-party Homebrew tap",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "tap:felixkratz/formulae",
+   "group": "Taps",
+   "label": "felixkratz/formulae",
+   "kind": "tap",
+   "name": "felixkratz/formulae",
+   "url": "https://github.com/FelixKratz/homebrew-formulae",
+   "desc": "Third-party Homebrew tap",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "tap:hashicorp/tap",
+   "group": "Taps",
+   "label": "hashicorp/tap",
+   "kind": "tap",
+   "name": "hashicorp/tap",
+   "url": "",
+   "desc": "Third-party Homebrew tap",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:btop",
+   "group": "CLI tools",
+   "label": "btop",
+   "kind": "brew",
+   "name": "btop",
+   "desc": "Resource monitor",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:colima",
+   "group": "CLI tools",
+   "label": "colima",
+   "kind": "brew",
+   "name": "colima",
+   "desc": "Container runtime for macOS (Docker without Docker Desktop)",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:docker",
+   "group": "CLI tools",
+   "label": "docker",
+   "kind": "brew",
+   "name": "docker",
+   "desc": "Docker CLI",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:docker-buildx",
+   "group": "CLI tools",
+   "label": "docker-buildx",
+   "kind": "brew",
+   "name": "docker-buildx",
+   "desc": "Docker buildx plugin",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:fastfetch",
+   "group": "CLI tools",
+   "label": "fastfetch",
+   "kind": "brew",
+   "name": "fastfetch",
+   "desc": "System info fetch tool",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:fzf",
+   "group": "CLI tools",
+   "label": "fzf",
+   "kind": "brew",
+   "name": "fzf",
+   "desc": "Fuzzy finder",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:gh",
+   "group": "CLI tools",
+   "label": "gh",
+   "kind": "brew",
+   "name": "gh",
+   "desc": "GitHub CLI",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:yt-dlp",
+   "group": "CLI tools",
+   "label": "yt-dlp",
+   "kind": "brew",
+   "name": "yt-dlp",
+   "desc": "Video downloader",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:mpv",
+   "group": "CLI tools",
+   "label": "mpv",
+   "kind": "brew",
+   "name": "mpv",
+   "desc": "Media player",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:neovim",
+   "group": "CLI tools",
+   "label": "neovim",
+   "kind": "brew",
+   "name": "neovim",
+   "desc": "Editor",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:nvm",
+   "group": "CLI tools",
+   "label": "nvm",
+   "kind": "brew",
+   "name": "nvm",
+   "desc": "Node version manager",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:poppler",
+   "group": "CLI tools",
+   "label": "poppler",
+   "kind": "brew",
+   "name": "poppler",
+   "desc": "PDF rendering tools",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:postgresql@16",
+   "group": "CLI tools",
+   "label": "postgresql@16",
+   "kind": "brew",
+   "name": "postgresql@16",
+   "desc": "PostgreSQL 16 database",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:powerlevel10k",
+   "group": "CLI tools",
+   "label": "powerlevel10k",
+   "kind": "brew",
+   "name": "powerlevel10k",
+   "desc": "Zsh prompt theme",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:pyenv",
+   "group": "CLI tools",
+   "label": "pyenv",
+   "kind": "brew",
+   "name": "pyenv",
+   "desc": "Python version manager",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:ruby",
+   "group": "CLI tools",
+   "label": "ruby",
+   "kind": "brew",
+   "name": "ruby",
+   "desc": "Ruby language",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:stow",
+   "group": "CLI tools",
+   "label": "stow",
+   "kind": "brew",
+   "name": "stow",
+   "desc": "Symlink farm manager (used for dotfiles)",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:streamlink",
+   "group": "CLI tools",
+   "label": "streamlink",
+   "kind": "brew",
+   "name": "streamlink",
+   "desc": "Stream extractor",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:tailscale",
+   "group": "CLI tools",
+   "label": "tailscale",
+   "kind": "brew",
+   "name": "tailscale",
+   "desc": "VPN mesh network",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:tmux",
+   "group": "CLI tools",
+   "label": "tmux",
+   "kind": "brew",
+   "name": "tmux",
+   "desc": "Terminal multiplexer",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:universal-ctags",
+   "group": "CLI tools",
+   "label": "universal-ctags",
+   "kind": "brew",
+   "name": "universal-ctags",
+   "desc": "Source code indexer",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:uv",
+   "group": "CLI tools",
+   "label": "uv",
+   "kind": "brew",
+   "name": "uv",
+   "desc": "Fast Python package manager",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:xcodegen",
+   "group": "CLI tools",
+   "label": "xcodegen",
+   "kind": "brew",
+   "name": "xcodegen",
+   "desc": "Generate Xcode projects from YAML",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:zsh-autosuggestions",
+   "group": "CLI tools",
+   "label": "zsh-autosuggestions",
+   "kind": "brew",
+   "name": "zsh-autosuggestions",
+   "desc": "Fish-like autosuggestions for zsh",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:zsh-syntax-highlighting",
+   "group": "CLI tools",
+   "label": "zsh-syntax-highlighting",
+   "kind": "brew",
+   "name": "zsh-syntax-highlighting",
+   "desc": "Syntax highlighting for zsh",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:felixkratz/formulae/sketchybar",
+   "group": "CLI tools",
+   "label": "sketchybar",
+   "kind": "brew",
+   "name": "felixkratz/formulae/sketchybar",
+   "desc": "Custom macOS menu bar",
+   "requires": [
+    "homebrew",
+    "tap:felixkratz/formulae"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "brew:hashicorp/tap/terraform",
+   "group": "CLI tools",
+   "label": "terraform",
+   "kind": "brew",
+   "name": "hashicorp/tap/terraform",
+   "desc": "Infrastructure as code",
+   "requires": [
+    "homebrew",
+    "tap:hashicorp/tap"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:adguard",
+   "group": "Apps",
+   "label": "adguard",
+   "kind": "cask",
+   "name": "adguard",
+   "desc": "Ad blocker",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:claude",
+   "group": "Apps",
+   "label": "claude",
+   "kind": "cask",
+   "name": "claude",
+   "desc": "Claude desktop app",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:cursor",
+   "group": "Apps",
+   "label": "cursor",
+   "kind": "cask",
+   "name": "cursor",
+   "desc": "Cursor editor",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:discord",
+   "group": "Apps",
+   "label": "discord",
+   "kind": "cask",
+   "name": "discord",
+   "desc": "Chat",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:gcloud-cli",
+   "group": "Apps",
+   "label": "gcloud-cli",
+   "kind": "cask",
+   "name": "gcloud-cli",
+   "desc": "Google Cloud CLI",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:iina",
+   "group": "Apps",
+   "label": "iina",
+   "kind": "cask",
+   "name": "iina",
+   "desc": "Video player",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:kitty",
+   "group": "Apps",
+   "label": "kitty",
+   "kind": "cask",
+   "name": "kitty",
+   "desc": "GPU terminal",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:microsoft-teams",
+   "group": "Apps",
+   "label": "microsoft-teams",
+   "kind": "cask",
+   "name": "microsoft-teams",
+   "desc": "Microsoft Teams",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:moonlight",
+   "group": "Apps",
+   "label": "moonlight",
+   "kind": "cask",
+   "name": "moonlight",
+   "desc": "Game streaming client",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:qutebrowser",
+   "group": "Apps",
+   "label": "qutebrowser",
+   "kind": "cask",
+   "name": "qutebrowser",
+   "desc": "Keyboard-driven browser",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:raycast",
+   "group": "Apps",
+   "label": "raycast",
+   "kind": "cask",
+   "name": "raycast",
+   "desc": "Launcher",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:spotify",
+   "group": "Apps",
+   "label": "spotify",
+   "kind": "cask",
+   "name": "spotify",
+   "desc": "Music",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:telegram",
+   "group": "Apps",
+   "label": "telegram",
+   "kind": "cask",
+   "name": "telegram",
+   "desc": "Chat",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:ungoogled-chromium",
+   "group": "Apps",
+   "label": "ungoogled-chromium",
+   "kind": "cask",
+   "name": "ungoogled-chromium",
+   "desc": "Chromium without Google services",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:wallspace",
+   "group": "Apps",
+   "label": "wallspace",
+   "kind": "cask",
+   "name": "wallspace",
+   "desc": "Live wallpapers",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:font-hack-nerd-font",
+   "group": "Fonts",
+   "label": "font-hack-nerd-font",
+   "kind": "cask",
+   "name": "font-hack-nerd-font",
+   "desc": "Font used by terminal / bar",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:font-meslo-lg-nerd-font",
+   "group": "Fonts",
+   "label": "font-meslo-lg-nerd-font",
+   "kind": "cask",
+   "name": "font-meslo-lg-nerd-font",
+   "desc": "Font used by terminal / bar",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "cask:font-sketchybar-app-font",
+   "group": "Fonts",
+   "label": "font-sketchybar-app-font",
+   "kind": "cask",
+   "name": "font-sketchybar-app-font",
+   "desc": "Font used by terminal / bar",
+   "requires": [
+    "homebrew"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:zsh",
+   "group": "Dotfiles",
+   "label": "zsh",
+   "kind": "stow",
+   "name": "zsh",
+   "desc": "Shell config: .zshrc, .zshenv, .zprofile, p10k. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:git",
+   "group": "Dotfiles",
+   "label": "git",
+   "kind": "stow",
+   "name": "git",
+   "desc": "~/.gitconfig. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:tmux",
+   "group": "Dotfiles",
+   "label": "tmux",
+   "kind": "stow",
+   "name": "tmux",
+   "desc": "tmux config + cheatsheet. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:kitty",
+   "group": "Dotfiles",
+   "label": "kitty",
+   "kind": "stow",
+   "name": "kitty",
+   "desc": "Terminal config + theme. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:nvim",
+   "group": "Dotfiles",
+   "label": "nvim",
+   "kind": "stow",
+   "name": "nvim",
+   "desc": "Neovim config. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:skhd",
+   "group": "Dotfiles",
+   "label": "skhd",
+   "kind": "stow",
+   "name": "skhd",
+   "desc": "Hotkey daemon config. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:yabairc",
+   "group": "Dotfiles",
+   "label": "yabairc",
+   "kind": "stow",
+   "name": "yabairc",
+   "desc": "yabai window manager config. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:yabai",
+   "group": "Dotfiles",
+   "label": "yabai",
+   "kind": "stow",
+   "name": "yabai",
+   "desc": "yabai helper script. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:sketchybar",
+   "group": "Dotfiles",
+   "label": "sketchybar",
+   "kind": "stow",
+   "name": "sketchybar",
+   "desc": "Menu bar config. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:btop",
+   "group": "Dotfiles",
+   "label": "btop",
+   "kind": "stow",
+   "name": "btop",
+   "desc": "btop config. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:fastfetch",
+   "group": "Dotfiles",
+   "label": "fastfetch",
+   "kind": "stow",
+   "name": "fastfetch",
+   "desc": "fastfetch config. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:gh",
+   "group": "Dotfiles",
+   "label": "gh",
+   "kind": "stow",
+   "name": "gh",
+   "desc": "GitHub CLI settings. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:mpv",
+   "group": "Dotfiles",
+   "label": "mpv",
+   "kind": "stow",
+   "name": "mpv",
+   "desc": "mpv config. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:scripts",
+   "group": "Dotfiles",
+   "label": "scripts",
+   "kind": "stow",
+   "name": "scripts",
+   "desc": "Helper scripts in ~/.config/scripts. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:qutebrowser-profile",
+   "group": "Dotfiles",
+   "label": "qutebrowser-profile",
+   "kind": "stow",
+   "name": "qutebrowser-profile",
+   "desc": "qutebrowser profile config. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "stow:simplebar",
+   "group": "Dotfiles",
+   "label": "simplebar",
+   "kind": "stow",
+   "name": "simplebar",
+   "desc": "simple-bar config. Existing files are backed up first.",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "zinit",
+   "group": "Shell & languages",
+   "label": "zinit",
+   "kind": "shell",
+   "desc": "Zsh plugin manager (needed by .zshrc)",
+   "cmd": "mkdir -p ~/.local/share/zinit && git clone https://github.com/zdharma-continuum/zinit.git ~/.local/share/zinit/zinit.git",
+   "check": "test -d ~/.local/share/zinit/zinit.git",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "node",
+   "group": "Shell & languages",
+   "label": "Node.js LTS (via nvm)",
+   "kind": "shell",
+   "desc": "Latest LTS Node through nvm",
+   "cmd": "export NVM_DIR=\"$HOME/.nvm\"; mkdir -p \"$NVM_DIR\"; . \"$(brew --prefix nvm)/nvm.sh\" && nvm install --lts",
+   "check": "ls ~/.nvm/versions/node 2>/dev/null | grep -q .",
+   "requires": [
+    "brew:nvm"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "rust",
+   "group": "Shell & languages",
+   "label": "Rust (rustup)",
+   "kind": "shell",
+   "desc": "Rust toolchain",
+   "cmd": "curl https://sh.rustup.rs -sSf | sh -s -- -y",
+   "check": "test -x ~/.cargo/bin/rustc",
+   "requires": [],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "npm:@anthropic-ai/claude-code",
+   "group": "Dev tools",
+   "label": "@anthropic-ai/claude-code",
+   "kind": "shell",
+   "desc": "Global npm package",
+   "cmd": "export NVM_DIR=\"$HOME/.nvm\"; . \"$(brew --prefix nvm)/nvm.sh\" && npm install -g @anthropic-ai/claude-code",
+   "check": "export NVM_DIR=\"$HOME/.nvm\"; . \"$(brew --prefix nvm)/nvm.sh\" >/dev/null 2>&1 && npm ls -g --depth=0 2>/dev/null | grep -q \"@anthropic-ai/claude-code@\"",
+   "requires": [
+    "node"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "npm:vercel",
+   "group": "Dev tools",
+   "label": "vercel",
+   "kind": "shell",
+   "desc": "Global npm package",
+   "cmd": "export NVM_DIR=\"$HOME/.nvm\"; . \"$(brew --prefix nvm)/nvm.sh\" && npm install -g vercel",
+   "check": "export NVM_DIR=\"$HOME/.nvm\"; . \"$(brew --prefix nvm)/nvm.sh\" >/dev/null 2>&1 && npm ls -g --depth=0 2>/dev/null | grep -q \"vercel@\"",
+   "requires": [
+    "node"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "npm:vite",
+   "group": "Dev tools",
+   "label": "vite",
+   "kind": "shell",
+   "desc": "Global npm package",
+   "cmd": "export NVM_DIR=\"$HOME/.nvm\"; . \"$(brew --prefix nvm)/nvm.sh\" && npm install -g vite",
+   "check": "export NVM_DIR=\"$HOME/.nvm\"; . \"$(brew --prefix nvm)/nvm.sh\" >/dev/null 2>&1 && npm ls -g --depth=0 2>/dev/null | grep -q \"vite@\"",
+   "requires": [
+    "node"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "uv:headroom-ai",
+   "group": "Dev tools",
+   "label": "headroom-ai",
+   "kind": "shell",
+   "desc": "uv tool",
+   "cmd": "uv tool install \"headroom-ai[all]\"",
+   "check": "uv tool list 2>/dev/null | grep -q headroom-ai",
+   "requires": [
+    "brew:uv"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "ext:anysphere.remote-containers",
+   "group": "Dev tools",
+   "label": "anysphere.remote-containers",
+   "kind": "shell",
+   "desc": "Cursor extension",
+   "cmd": "cursor --install-extension anysphere.remote-containers",
+   "check": "cursor --list-extensions 2>/dev/null | grep -qx anysphere.remote-containers",
+   "requires": [
+    "cask:cursor"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "ext:anysphere.remote-ssh",
+   "group": "Dev tools",
+   "label": "anysphere.remote-ssh",
+   "kind": "shell",
+   "desc": "Cursor extension",
+   "cmd": "cursor --install-extension anysphere.remote-ssh",
+   "check": "cursor --list-extensions 2>/dev/null | grep -qx anysphere.remote-ssh",
+   "requires": [
+    "cask:cursor"
+   ],
+   "interactive": false,
+   "default": true
+  },
+  {
+   "id": "svc:postgresql@16",
+   "group": "Services",
+   "label": "Start postgresql@16",
+   "kind": "shell",
+   "desc": "brew services start",
+   "cmd": "brew services start postgresql@16",
+   "check": "brew services list 2>/dev/null | grep -E '^postgresql@16 +started' >/dev/null",
+   "requires": [
+    "brew:postgresql@16"
+   ],
+   "default": false,
+   "interactive": false
+  },
+  {
+   "id": "svc:sketchybar",
+   "group": "Services",
+   "label": "Start sketchybar",
+   "kind": "shell",
+   "desc": "brew services start",
+   "cmd": "brew services start sketchybar",
+   "check": "brew services list 2>/dev/null | grep -E '^sketchybar +started' >/dev/null",
+   "requires": [
+    "brew:felixkratz/formulae/sketchybar"
+   ],
+   "default": true,
+   "interactive": false
+  }
+ ],
+ "manual": [
+  "Restore ~/.ssh, ~/.aws, ~/.pgpass and ~/.zshrc.local from your encrypted backup",
+  "Run: gh auth login   (and: vercel login)",
+  "Build the yabai fork for this macOS (see README), then grant Accessibility",
+  "Install App Store / manual apps: Xcode, Amphetamine, WhatsApp, Steam, UTM, DBeaver, Firefox",
+  "Import Raycast settings, sign in to Spotify / Discord / Telegram / Teams",
+  "System Settings: grant Screen Recording / Accessibility to kitty, Raycast, skhd",
+  "Clone your repos (e.g. ~/Work/Fun, ~/Work/SIT) from GitHub / Bitbucket",
+  "Rotate secrets that lived in ~/.zshrc.local (prod DB URL, Bitbucket token)"
+ ]
+}

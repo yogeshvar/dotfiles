@@ -25,6 +25,16 @@ After the first install with a new signature, macOS will ask for Accessibility p
 
 If a future macOS beta build changes things again: check that repo/issue for updated offsets before assuming something in this dotfiles setup is broken.
 
+## Fresh Mac
+
+```sh
+xcode-select --install          # gives you git + python3
+git clone https://github.com/yogeshvar/dotfiles ~/dotfiles
+cd ~/dotfiles && ./restore
+```
+
+`./restore` is a terminal checklist (stdlib Python only): tick what you want, it installs one item at a time with a live log and ends with a list of manual steps. Flags: `--dry-run` (full UI, nothing installed), `--list`, `-y`. What it offers lives in `restore.catalog.json`; `python3 -m unittest discover -s tests` checks it against the `Brewfile`. Existing config files are moved to `~/.dotfiles-backup/` before linking. Secrets (`~/.ssh`, `~/.aws`, `~/.zshrc.local`) are never in this repo.
+
 ## Layout
 
 Stow-style: each top-level folder mirrors `$HOME` (e.g. `skhd/.skhdrc` → `~/.skhdrc`, `scripts/.config/scripts/` → `~/.config/scripts/`). No symlinks currently — configs are copied, not linked; re-sync manually after editing either the live files or this repo.
