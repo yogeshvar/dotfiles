@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+#
+# val — watch VALORANT esports in mpv (no browser), and check the schedule.
+#
+#   val              official VALORANT stream
+#   val americas     VCT Americas   (also: emea, pacific, champions)
+#   val <name>       any Twitch channel by name
+#   val -q 720p ...  pick a quality (default: best)
+#   val next [N]     show the next N upcoming VCT matches (default 6) in your time
+#
+# Watch uses streamlink -> mpv. `next` reads the same VCT calendar feed you
+# subscribed to. Override the feed with VAL_FEED, default quality with VAL_QUALITY.
+
+set -euo pipefail
+
+FEED="${VAL_FEED:-https://smartcalendars.ai/cal/0bc0d0492045a2c44afe2738944d4ea063d3630518d089774579ae64191502c9.ics}"
+
+# ---- `val next` : upcoming matches from the calendar feed -------------------
+if [[ "${1:-}" == "next" ]]; then
+  n="${2:-6}"
+  command -v python3 >/dev/null || { echo "val next: needs python3" >&2; exit 1; }
+  tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+  curl -fsSL "$FEED" > "$tmp" || { echo "val next: couldn't fetch the schedule feed" >&2; exit 1; }
+  python3 - "$tmp" "$n" <<'PY'
+import sys, re, datetime
+data = open(sys.argv[1], encoding="utf-8").read()
+data = data.replace("\r\n ", "").replace("\n ", "")   # unfold wrapped lines
+n = int(sys.argv[2])
+events = []
+for block in data.split("BEGIN:VEVENT")[1:]:
+    d = re.search(r'DTSTART[^:]*:(\d{8}T\d{6}Z)', block)
+    s = re.search(r'SUMMARY[^:]*:(.*)', block)
+    if not d or not s:
+        continue
+    dt = datetime.datetime.strptime(d.group(1), "%Y%m%dT%H%M%SZ").replace(tzinfo=datetime.timezone.utc)
+    events.append((dt, s.group(1).strip()))
+now = datetime.datetime.now(datetime.timezone.utc)
+upcoming = sorted(e for e in events if e[0] >= now)[:n]
+if not upcoming:
+    print("No upcoming matches found in the feed.")
+else:
+    print("Next %d VALORANT matches (your local time):\n" % len(upcoming))
+    for dt, name in upcoming:
+        print("  " + dt.astimezone().strftime("%a %b %d  %H:%M") + "   " + name)
+PY
+  exit 0
+fi
+
+# ---- watch a stream --------------------------------------------------------
+# Preferred order for a bare `val`: FNS co-stream first, then the official
+# regional broadcasts. Override with VAL_CHANNELS="chan1 chan2 ...".
+DEFAULT_CHANNELS="${VAL_CHANNELS:-gofns valorant_americas valorant_emea valorant_pacific valorant}"
+
+quality="${VAL_QUALITY:-best}"
+# Window mode: normal | pip (always-on-top corner) | fs (fullscreen on top).
+# Set a default with VAL_MODE, or per-run with -p / -f.
+mode="${VAL_MODE:-normal}"
+while [[ "${1:-}" == -* ]]; do
+  case "$1" in
+    -p|--pip)              mode="pip"; shift ;;
+    -f|--fs|--fullscreen)  mode="fs";  shift ;;
+    -w|--window)           mode="normal"; shift ;;
+    -q)                    quality="$2"; shift 2 ;;
+    *) echo "val: unknown option $1" >&2; exit 2 ;;
+  esac
+done
+
+command -v streamlink >/dev/null || { echo "val: streamlink not installed (brew install streamlink)" >&2; exit 1; }
+
+is_live() { streamlink "twitch.tv/$1" "$quality" --stream-url >/dev/null 2>&1; }
+
+play() {
+  local mpv_opts=""
+  case "$mode" in
+    pip) mpv_opts="--ontop --no-border --autofit=33% --geometry=-24-48" ;; # small, always-on-top, bottom-right
+    fs)  mpv_opts="--fullscreen --ontop" ;;
+  esac
+  echo "▶  twitch.tv/$1  ($quality, $mode)  → mpv"
+  if [[ -n "$mpv_opts" ]]; then
+    exec streamlink --player=mpv --title "{author} — {title}" --player-args "$mpv_opts" "twitch.tv/$1" "$quality"
+  else
+    exec streamlink --player=mpv --title "{author} — {title}" "twitch.tv/$1" "$quality"
+  fi
+}
+
+case "${1:-auto}" in
+  auto|main|"")
+    echo "Finding the first live channel: $DEFAULT_CHANNELS"
+    for ch in $DEFAULT_CHANNELS; do
+      printf "  %s … " "$ch"
+      if is_live "$ch"; then echo "LIVE"; play "$ch"; fi
+      echo "offline"
+    done
+    echo ""
+    echo "Nothing live right now. See what's next:  val next"
+    exit 1
+    ;;
+  americas)  target="valorant_americas" ;;
+  emea)      target="valorant_emea" ;;
+  pacific)   target="valorant_pacific" ;;
+  champions) target="valorant_champions" ;;
+  *)         target="$1" ;;
+esac
+
+# Explicit single channel
+if is_live "$target"; then
+  play "$target"
+else
+  echo "val: 'twitch.tv/$target' isn't live right now (channel offline)."
+  echo "     See what's next:  val next     (or try another: val americas | emea | pacific)"
+  exit 1
+fi
